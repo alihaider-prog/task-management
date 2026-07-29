@@ -14,7 +14,7 @@ import (
 
 var DB *sql.DB
 
-func Init(envPath string) {
+func Init(envPath string) (*sql.DB) {
 	// Load .env file from the given path
 	if err := godotenv.Load(envPath); err != nil {
 		log.Fatalf("Error loading .env file from %s: %v", envPath, err)
@@ -34,7 +34,7 @@ func Init(envPath string) {
 		host, port, user, password, dbname)
 
 	var err error
-	DB, err = sql.Open("postgres", dsn)
+	DB, err = sql.Open("pgx", dsn) // postgres
 	if err != nil {
 		log.Fatalf("Failed to open DB connection: %v", err)
 	}
@@ -42,4 +42,7 @@ func Init(envPath string) {
 	if err = DB.Ping(); err != nil {
 		log.Fatalf("Failed to ping DB: %v", err)
 	}
+	fmt.Println("Connected!")
+
+	return DB
 }
