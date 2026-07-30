@@ -6,18 +6,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(taskHandler *handler.TaskHandler) *gin.Engine {
+func SetupRouter(
+	taskHandler *handler.TaskHandler,
+	authHandler *handler.AuthHandler,
+) *gin.Engine {
+
 	router := gin.Default()
 	api := router.Group("api/v1")
 
-	tasks := api.Group("/tasks")
-	{
-		tasks.GET("", taskHandler.GetTasks)
-		tasks.GET("/:id", taskHandler.GetTaskByID)
-		tasks.POST("", taskHandler.CreateTask)
-		tasks.PUT("/:id", taskHandler.UpdateTask)
-		tasks.DELETE("/:id", taskHandler.DeleteTask)
-	}
+	protected := api.Group("/")
+
+	registerAuthRouts(api, authHandler)
+	registerTaskRouts(protected, taskHandler)
 
 	return router
 }

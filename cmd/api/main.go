@@ -3,6 +3,8 @@ package main
 import (
 	// "database/sql"
 	// "fmt"
+	// "encoding/hex"
+	// "os"
 	// "log"
 
 	"task-management/internal/database"
@@ -37,11 +39,36 @@ func main() {
 	// }
 	// fmt.Println("connected")
 
+	// var jwtSecret []byte
+	// secretHex := os.Getenv("JWT_SECRET")
+	// if secretHex == "" {
+	// 	log.Fatal("JWT_SECRET environment variable not set")
+	// }
+	// decoded, err := hex.DecodeString(secretHex)
+	// if err != nil {
+	// 	log.Fatal("invalid JWT_SECRET: must be hex-encoded")
+	// }
+	// if len(decoded) < 32 {
+	// 	log.Fatal("JWT_SECRET must be at least 256 bits (32 bytes)")
+	// }
+	// jwtSecret = decoded
+
+	// os.Setenv("JWT_SECRET", string(jwtSecret))
+
+	//auth
+	authRepo := repository.NewAuthRepository(db)
+	authService := service.NewAuthService(authRepo)
+	authHandler := handler.NewAuthHandler(authService)
+
+	// tasks
 	taskRepo := repository.NewTaskRepository(db)
 	taskService := service.NewTaskService(taskRepo)
 	taskHandler := handler.NewTaskHandler(taskService)
 
-	r := router.SetupRouter(taskHandler)
+	r := router.SetupRouter(
+		taskHandler,
+		authHandler,
+	)
 
 	r.Run()
 }
