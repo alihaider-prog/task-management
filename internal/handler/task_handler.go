@@ -61,6 +61,21 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 
 func (h *TaskHandler) CreateTask(c *gin.Context) {
 	var task models.Task
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "user not authenticated",
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(int64)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "invalid user id type",
+		})
+		return
+	}
 
 	if err := c.ShouldBindJSON(&task); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -69,7 +84,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
-	id, err := h.service.CreateTask(&task)
+	id, err := h.service.CreateTask(&task, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return

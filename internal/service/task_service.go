@@ -16,7 +16,7 @@ func NewTaskService(repo *repository.TaskRepository) *TaskService {
 	}
 }
 
-func (s *TaskService) GetTasks (ProjectID int64) ([]models.Task, error) {
+func (s *TaskService) GetTasks(ProjectID int64) ([]models.Task, error) {
 	if ProjectID <= 0 {
 		return nil, errors.New("invalid project id")
 	}
@@ -31,7 +31,7 @@ func (s *TaskService) GetTaskByID(id int64) (*models.Task, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *TaskService) CreateTask(task *models.Task) (*int64, error) {
+func (s *TaskService) CreateTask(task *models.Task, userID int64) (*int64, error) {
 
 	if task.Title == "" {
 		return nil, errors.New("title is required")
@@ -44,10 +44,10 @@ func (s *TaskService) CreateTask(task *models.Task) (*int64, error) {
 	if task.Priority == "" {
 		task.Priority = models.PriorityMedium
 	}
-	
+
 	task.Status = models.StatusTodo
 	task.Version = 1
-	task.CreatedBy = 1
+	task.CreatedBy = int64(userID)
 
 	return s.repo.Create(task)
 }

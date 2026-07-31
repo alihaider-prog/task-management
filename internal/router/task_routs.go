@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func registerTaskRouts(api *gin.RouterGroup, taskHandler *handler.TaskHandler) {
-	tasks := api.Group("/tasks")
+func registerTaskRouts(protected *gin.RouterGroup, taskHandler *handler.TaskHandler) {
+	tasks := protected.Group("/tasks")
 	{
 		tasks.GET("", taskHandler.GetTasks)
 		tasks.GET("/:id", taskHandler.GetTaskByID)
