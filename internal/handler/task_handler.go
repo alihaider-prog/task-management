@@ -42,7 +42,9 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project id"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid project id",
+		})
 		return
 	}
 
@@ -116,7 +118,6 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Task updated",
-		"task":    task,
 	})
 }
 
@@ -129,7 +130,7 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 
 	if err := h.service.DeleteTask(id); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "there is no task with this id",
+			"error": err.Error(),
 		})
 		return
 	}

@@ -5,10 +5,11 @@ import (
 )
 
 type Project struct {
-	ID          int       `json:"id"`
-	WorkspaceID int       `json:"workspace_id"`
+	ID          int64     `json:"id"`
+	WorkspaceID *int64     `json:"workspace_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	CreatedBy   int64     `json:"created_by"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

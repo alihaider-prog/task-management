@@ -70,10 +70,16 @@ func main() {
 	workspaceService := service.NewWorkspaceService(workspaceRepo)
 	workspaceHandler := handler.NewWorkspaceHandler(workspaceService)
 
+	// projects
+	projectRepo := repository.NewProjectRepository(db)
+	projectService := service.NewProjectService(projectRepo)
+	projectHandler := handler.NewProjectHandler(projectService)
+
 	r := router.SetupRouter(
 		authHandler,
 		taskHandler,
 		workspaceHandler,
+		projectHandler,
 	)
 
 	r.Run()
