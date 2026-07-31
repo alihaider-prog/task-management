@@ -20,7 +20,7 @@ func (s *TaskService) GetTasks(ProjectID int64) ([]models.Task, error) {
 	if ProjectID <= 0 {
 		return nil, errors.New("invalid project id")
 	}
-	return s.repo.List(ProjectID)
+	return s.repo.AllTasks(ProjectID)
 }
 
 func (s *TaskService) GetTaskByID(id int64) (*models.Task, error) {
@@ -28,7 +28,7 @@ func (s *TaskService) GetTaskByID(id int64) (*models.Task, error) {
 	if id <= 0 {
 		return nil, errors.New("invalid task id")
 	}
-	return s.repo.GetByID(id)
+	return s.repo.TaskByID(id)
 }
 
 func (s *TaskService) CreateTask(task *models.Task, userID int64) (*int64, error) {
@@ -61,7 +61,7 @@ func (s *TaskService) CreateTask(task *models.Task, userID int64) (*int64, error
 }
 
 func (s *TaskService) UpdateTask(task *models.Task) error {
-	if task.ID == 0 {
+	if task.ID <= 0 {
 		return errors.New("invalid task")
 	}
 	return s.repo.Update(task)

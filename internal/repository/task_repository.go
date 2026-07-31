@@ -18,7 +18,7 @@ func NewTaskRepository(db *sql.DB) *TaskRepository {
 	}
 }
 
-func (r *TaskRepository) List(projectID int64) ([]models.Task, error) {
+func (r *TaskRepository) AllTasks(projectID int64) ([]models.Task, error) {
 	query := `SELECT id,
 		title,
 		description,
@@ -73,7 +73,7 @@ func (r *TaskRepository) List(projectID int64) ([]models.Task, error) {
 
 }
 
-func (r *TaskRepository) GetByID(taskID int64) (*models.Task, error) {
+func (r *TaskRepository) TaskByID(id int64) (*models.Task, error) {
 	query := `SELECT id,
 		title,
 		description,
@@ -89,9 +89,8 @@ func (r *TaskRepository) GetByID(taskID int64) (*models.Task, error) {
 		updated_at
 		FROM tasks
 		WHERE id = $1
-		ORDER BY created_at DESC
 	`
-	row := r.db.QueryRow(query, taskID)
+	row := r.db.QueryRow(query, id)
 	var task models.Task
 
 	if err := row.Scan(

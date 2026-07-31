@@ -36,9 +36,7 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"tasks": tasks,
-	})
+	c.JSON(http.StatusOK, tasks)
 }
 
 func (h *TaskHandler) GetTaskByID(c *gin.Context) {
@@ -108,7 +106,7 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	task.ID = id
 
 	if err := h.service.UpdateTask(&task); err != nil {
@@ -118,7 +116,7 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Task updated",
-		"task": task,
+		"task":    task,
 	})
 }
 

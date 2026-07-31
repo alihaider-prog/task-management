@@ -65,9 +65,15 @@ func main() {
 	taskService := service.NewTaskService(taskRepo)
 	taskHandler := handler.NewTaskHandler(taskService)
 
+	// workspaces
+	workspaceRepo := repository.NewWorkspaceRepository(db)
+	workspaceService := service.NewWorkspaceService(workspaceRepo)
+	workspaceHandler := handler.NewWorkspaceHandler(workspaceService)
+
 	r := router.SetupRouter(
-		taskHandler,
 		authHandler,
+		taskHandler,
+		workspaceHandler,
 	)
 
 	r.Run()
