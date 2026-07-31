@@ -41,6 +41,14 @@ func (s *TaskService) CreateTask(task *models.Task, userID int64) (*int64, error
 		return nil, errors.New("project is required")
 	}
 
+	projectExists, err := s.repo.ProjectExists(*task.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	if !projectExists {
+		return nil, errors.New("project does not exist")
+	}
+
 	if task.Priority == "" {
 		task.Priority = models.PriorityMedium
 	}
