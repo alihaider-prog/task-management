@@ -95,3 +95,8 @@ func (s *TaskService) DeleteTask(id int64) error {
 	}
 	return s.repo.Delete(id)
 }
+
+// ProcessOverdue marks overdue tasks in batches. `systemUserID` is recorded as the changer in history.
+func (s *TaskService) ProcessOverdue(batchSize int, systemUserID int64) (int, error) {
+	return s.repo.MarkOverdueTasks(batchSize, systemUserID)
+}

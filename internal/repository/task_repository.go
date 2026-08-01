@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"task-management/internal/models"
+	"time"
 )
 
 // import "task-management/internal/models"
@@ -465,10 +466,19 @@ func (r *TaskRepository) insertTaskHistoryTx(tx *sql.Tx, oldTask, newTask *model
 	oldValue := oldTask.Title + "\n" + oldTask.Description
 	newValue := newTask.Title + "\n" + newTask.Description
 
+	var changedByValue interface{}
+	if changedBy > 0 {
+		changedByValue = changedBy
+	} else if oldTask.CreatedBy > 0 {
+		changedByValue = oldTask.CreatedBy
+	} else {
+		changedByValue = nil
+	}
+
 	_, err := tx.Exec(
 		query,
 		oldTask.ID,
-		changedBy,
+		changedByValue,
 		"update",
 		fieldName,
 		oldValue,
@@ -481,4 +491,100 @@ func (r *TaskRepository) insertTaskHistoryTx(tx *sql.Tx, oldTask, newTask *model
 		newTask.AssigneeID,
 	)
 	return err
+}
+
+func (r *TaskRepository) MarkOverdueTasks(batchSize int, changedBy int64) (int, error) {
+	if batchSize <= 0 {
+		batchSize = 100
+	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	rows, err := tx.Query(`SELECT id,
+        title,
+        description,
+        status,
+        priority,
+        due_date,
+        assignee_id,
+        parent_task_id,
+        version,
+        project_id,
+        created_by,
+        created_at,
+        updated_at
+        FROM tasks
+        WHERE due_date < NOW() AND status != 'completed'
+        FOR UPDATE SKIP LOCKED
+        LIMIT $1`, batchSize)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	defer rows.Close()
+
+	var toProcess []*models.Task
+	for rows.Next() {
+		var t models.Task
+		if err := rows.Scan(
+			&t.ID,
+			&t.Title,
+			&t.Description,
+			&t.Status,
+			&t.Priority,
+			&t.DueDate,
+			&t.AssigneeID,
+			&t.ParentTaskID,
+			&t.Version,
+			&t.ProjectID,
+			&t.CreatedBy,
+			&t.CreatedAt,
+			&t.UpdatedAt,
+		); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		toProcess = append(toProcess, &t)
+	}
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if len(toProcess) == 0 {
+		if err := tx.Commit(); err != nil {
+			return 0, err
+		}
+		return 0, nil
+	}
+
+	for _, old := range toProcess {
+		newVersion := old.Version + 1
+		// update task status and version
+		var updatedAt time.Time
+		row := tx.QueryRow(`UPDATE tasks SET status = $1, version = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING updated_at`, models.StatusOverdue, newVersion, old.ID)
+		if err := row.Scan(&updatedAt); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		newTask := *old
+		newTask.Status = models.StatusOverdue
+		newTask.Version = newVersion
+		newTask.UpdatedAt = updatedAt
+
+		if err := r.insertTaskHistoryTx(tx, old, &newTask, changedBy); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return len(toProcess), nil
 }

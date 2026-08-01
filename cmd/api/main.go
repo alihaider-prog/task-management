@@ -7,11 +7,14 @@
 package main
 
 import (
-	// "database/sql"
-	// "fmt"
-	// "encoding/hex"
-	// "os"
-	// "log"
+	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	"task-management/internal/database"
 	"task-management/internal/handler"
@@ -19,6 +22,7 @@ import (
 	"task-management/internal/repository"
 	"task-management/internal/router"
 	"task-management/internal/service"
+	"task-management/internal/worker"
 
 	// _ "github.com/lib/pq" // To register the driver.
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -100,5 +104,55 @@ func main() {
 		roleMiddleware,
 	)
 
-	r.Run()
+	// create HTTP server for graceful shutdown
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
+	}
+
+	// context for worker and shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	wg := &sync.WaitGroup{}
+
+	// start overdue worker
+	overdueWorker := worker.NewOverdueWorker(taskService)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		overdueWorker.Run(ctx, 100, 0) // batchSize=100, systemUserID=0 (system)
+	}()
+
+	// start HTTP server
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server failed: %v", err)
+		}
+	}()
+	log.Println("server started on :8080")
+
+	// wait for termination signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("shutdown initiated")
+
+	// stop workers
+	cancel()
+
+	// shutdown HTTP server with timeout
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("server shutdown error: %v", err)
+	}
+
+	// wait for worker goroutines
+	wg.Wait()
+
+	// close DB
+	if err := db.Close(); err != nil {
+		log.Printf("db close error: %v", err)
+	}
+
+	log.Println("shutdown complete")
 }
