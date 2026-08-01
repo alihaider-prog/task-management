@@ -5,6 +5,8 @@ import (
 	"task-management/internal/middleware"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func SetupRouter(
@@ -17,6 +19,9 @@ func SetupRouter(
 ) *gin.Engine {
 
 	router := gin.Default()
+	router.StaticFile("/openapi.yaml", "docs/openapi.yaml")
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("http://localhost:8080/openapi.yaml")))
+
 	api := router.Group("api/v1")
 
 	protected := api.Group("/")

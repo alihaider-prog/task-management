@@ -1,3 +1,9 @@
+// @title Task Management API
+// @version 1.0
+// @description Task management service
+// @host localhost:8080
+// @BasePath /api/v1
+
 package main
 
 import (
