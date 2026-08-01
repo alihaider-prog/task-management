@@ -69,7 +69,7 @@ func (h *WorkspaceHandler) CreateWorkspace(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindBodyWithJSON(&workspace); err != nil {
+	if err := c.ShouldBindJSON(&workspace); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -96,7 +96,7 @@ func (h *WorkspaceHandler) UpdateWorkspace(c *gin.Context) {
 	}
 
 	var workspace models.Workspace
-	if err := c.ShouldBindBodyWithJSON(&workspace); err != nil {
+	if err := c.ShouldBindJSON(&workspace); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})

@@ -289,6 +289,19 @@ func (r *TaskRepository) UserExists(userID int64) (bool, error) {
 	return true, nil
 }
 
+func (r *TaskRepository) GetProjectIDByTaskID(taskID int64) (*int64, error) {
+	query := `SELECT project_id FROM tasks WHERE id = $1`
+	row := r.db.QueryRow(query, taskID)
+	var projectID int64
+	if err := row.Scan(&projectID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("task not found")
+		}
+		return nil, err
+	}
+	return &projectID, nil
+}
+
 func (r *TaskRepository) fetchTaskByID(id int64) (*models.Task, error) {
 	query := `SELECT id,
 		title,

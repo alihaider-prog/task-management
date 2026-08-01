@@ -154,6 +154,19 @@ func (r *MemberRepository) RemoveProjectMember(id int64) error {
 	return nil
 }
 
+func (r *MemberRepository) IsProjectMember(projectID, userID int64) (bool, error) {
+	query := `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2`
+	row := r.db.QueryRow(query, projectID, userID)
+	var exists int
+	if err := row.Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *MemberRepository) ModelExists(modelID int64, tableName string) (bool, error) {
 	query := fmt.Sprintf("SELECT 1 FROM %s WHERE id = $1", tableName)
 	row := r.db.QueryRow(query, modelID)

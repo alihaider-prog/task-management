@@ -9,6 +9,7 @@ import (
 
 	"task-management/internal/database"
 	"task-management/internal/handler"
+	"task-management/internal/middleware"
 	"task-management/internal/repository"
 	"task-management/internal/router"
 	"task-management/internal/service"
@@ -63,7 +64,6 @@ func main() {
 	// tasks
 	taskRepo := repository.NewTaskRepository(db)
 	taskService := service.NewTaskService(taskRepo)
-	taskHandler := handler.NewTaskHandler(taskService)
 
 	// workspaces
 	workspaceRepo := repository.NewWorkspaceRepository(db)
@@ -80,12 +80,18 @@ func main() {
 	memberService := service.NewMemberService(memberRepo)
 	memberHandler := handler.NewMemberHandler(memberService)
 
+	roleMiddleware := middleware.NewRoleMiddleware(workspaceRepo, projectRepo, taskRepo, memberRepo)
+
+	// tasks (handler)
+	taskHandler := handler.NewTaskHandler(taskService, roleMiddleware)
+
 	r := router.SetupRouter(
 		authHandler,
 		taskHandler,
 		workspaceHandler,
 		projectHandler,
 		memberHandler,
+		roleMiddleware,
 	)
 
 	r.Run()

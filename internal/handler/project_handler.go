@@ -59,6 +59,13 @@ func (h *ProjectHandler) GetProjectByID(c *gin.Context) {
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	var project models.Project
 
+	workspaceID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || workspaceID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+	project.WorkspaceID = &workspaceID
+
 	userIDVal, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{

@@ -176,3 +176,16 @@ func (r *ProjectRepository) WorkspaceExists(workspaceID int64) (bool, error) {
 	}
 	return true, nil
 }
+
+func (r *ProjectRepository) GetWorkspaceIDByProjectID(projectID int64) (*int64, error) {
+	query := `SELECT workspace_id FROM projects WHERE id = $1`
+	row := r.db.QueryRow(query, projectID)
+	var workspaceID int64
+	if err := row.Scan(&workspaceID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("project not found")
+		}
+		return nil, err
+	}
+	return &workspaceID, nil
+}

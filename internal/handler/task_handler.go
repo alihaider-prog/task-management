@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"task-management/internal/middleware"
 	"task-management/internal/models"
 	"task-management/internal/repository"
 	"task-management/internal/service"
@@ -13,12 +14,14 @@ import (
 )
 
 type TaskHandler struct {
-	service *service.TaskService
+	service        *service.TaskService
+	roleMiddleware *middleware.RoleMiddleware
 }
 
-func NewTaskHandler(service *service.TaskService) *TaskHandler {
+func NewTaskHandler(service *service.TaskService, roleMiddleware *middleware.RoleMiddleware) *TaskHandler {
 	return &TaskHandler{
-		service: service,
+		service:        service,
+		roleMiddleware: roleMiddleware,
 	}
 }
 
@@ -107,22 +110,40 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
+	if *task.ProjectID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid project id",
+		})
+		return
+	}
+
+	if err := h.roleMiddleware.CheckProjectAccess(*task.ProjectID, userID, models.RoleMember); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	id, err := h.service.CreateTask(&task, userID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Task Created",
-		"task id": id,
+		"message": "Task created",
+		"task_id": id,
 	})
 }
 
 func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task id"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid task id",
+		})
 		return
 	}
 
@@ -160,7 +181,9 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 func (h *TaskHandler) DeleteTask(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project id"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid task id",
+		})
 		return
 	}
 
