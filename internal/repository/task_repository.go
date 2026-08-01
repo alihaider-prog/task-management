@@ -181,10 +181,23 @@ func (r *TaskRepository) Create(task *models.Task) (*int64, error) {
 	return &id, nil
 }
 
-func (r *TaskRepository) Update(task *models.Task) error {
-	// increment version and update fields
-	newVersion := task.Version + 1
+func (r *TaskRepository) Update(task *models.Task, changedBy int64) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
+	currentTask, err := r.fetchTaskByIDTx(tx, task.ID)
+	if err != nil {
+		return err
+	}
+
+	newVersion := currentTask.Version + 1
 	query := `UPDATE tasks SET
 		title = $1,
 		description = $2,
@@ -198,7 +211,7 @@ func (r *TaskRepository) Update(task *models.Task) error {
 		WHERE id = $9
 		RETURNING updated_at`
 
-	row := r.db.QueryRow(
+	row := tx.QueryRow(
 		query,
 		task.Title,
 		task.Description,
@@ -211,10 +224,18 @@ func (r *TaskRepository) Update(task *models.Task) error {
 		task.ID,
 	)
 
-	if err := row.Scan(&task.UpdatedAt); err != nil {
+	if err = row.Scan(&task.UpdatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return errors.New("task not found")
 		}
+		return err
+	}
+
+	if err = r.insertTaskHistoryTx(tx, currentTask, task, changedBy); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return err
 	}
 
@@ -245,6 +266,19 @@ func (r *TaskRepository) Delete(id int64) error {
 func (r *TaskRepository) ProjectExists(projectID int64) (bool, error) {
 	query := `SELECT 1 FROM projects WHERE id = $1`
 	row := r.db.QueryRow(query, projectID)
+	var exists int
+	if err := row.Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *TaskRepository) UserExists(userID int64) (bool, error) {
+	query := `SELECT 1 FROM users WHERE id = $1`
+	row := r.db.QueryRow(query, userID)
 	var exists int
 	if err := row.Scan(&exists); err != nil {
 		if err == sql.ErrNoRows {
@@ -352,4 +386,86 @@ func (r *TaskRepository) fetchSubtasks(parentTaskID int64) ([]models.Task, error
 	}
 
 	return subtasks, nil
+}
+
+func (r *TaskRepository) fetchTaskByIDTx(tx *sql.Tx, id int64) (*models.Task, error) {
+	query := `SELECT id,
+		title,
+		description,
+		status,
+		priority,
+		due_date,
+		assignee_id,
+		parent_task_id,
+		version,
+		project_id,
+		created_by,
+		created_at,
+		updated_at
+		FROM tasks
+		WHERE id = $1
+		FOR UPDATE`
+	row := tx.QueryRow(query, id)
+	var task models.Task
+
+	if err := row.Scan(
+		&task.ID,
+		&task.Title,
+		&task.Description,
+		&task.Status,
+		&task.Priority,
+		&task.DueDate,
+		&task.AssigneeID,
+		&task.ParentTaskID,
+		&task.Version,
+		&task.ProjectID,
+		&task.CreatedBy,
+		&task.CreatedAt,
+		&task.UpdatedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("task not found")
+		}
+		return nil, err
+	}
+
+	return &task, nil
+}
+
+func (r *TaskRepository) insertTaskHistoryTx(tx *sql.Tx, oldTask, newTask *models.Task, changedBy int64) error {
+	query := `INSERT INTO task_history(
+		task_id,
+		changed_by,
+		action,
+		field_name,
+		old_value,
+		new_value,
+		old_status,
+		new_status,
+		old_priority,
+		new_priority,
+		old_assignee_id,
+		new_assignee_id
+	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`
+
+	fieldName := "update"
+	oldValue := oldTask.Title + "\n" + oldTask.Description
+	newValue := newTask.Title + "\n" + newTask.Description
+
+	_, err := tx.Exec(
+		query,
+		oldTask.ID,
+		changedBy,
+		"update",
+		fieldName,
+		oldValue,
+		newValue,
+		oldTask.Status,
+		newTask.Status,
+		oldTask.Priority,
+		newTask.Priority,
+		oldTask.AssigneeID,
+		newTask.AssigneeID,
+	)
+	return err
 }

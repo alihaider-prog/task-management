@@ -14,7 +14,7 @@ const (
 type TaskHistory struct {
 	ID            int64        `json:"id"`
 	TaskID        *int64       `json:"task_id,omitempty"`
-	ChangeddBy    *int64       `json:"changed_by,omitempty"`
+	ChangedBy     *int64       `json:"changed_by,omitempty"`
 	Action        TaskAction   `json:"action"`
 	FieldName     string       `json:"field_name"`
 	OldValue      string       `json:"old_value"`
