@@ -13,4 +13,3 @@ CREATE TABLE users (
 -- password
 -- created_at
 -- updated_at
--- migrate -path ./migrations -database "postgres://task_management:0871@localhost:5433/postgres?sslmode=disable" up

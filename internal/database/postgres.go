@@ -1,6 +1,5 @@
 package database
 
-// psql -U postgres -h localhost -p 5433
 import (
 	"database/sql"
 	"fmt"

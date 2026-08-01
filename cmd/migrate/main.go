@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -13,12 +15,13 @@ import (
 )
 
 var (
-	direction = flag.String("direction", "up", "migration direction: up, down, step")
+	direction = flag.String("direction", "up", "migration direction: up, down, step, status")
 	steps     = flag.Int("steps", 0, "number of steps to migrate when direction is step")
+	force     = flag.Int("force", -1, "force a migration version and clear dirty state")
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [-direction up|down|step] [-steps N]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "Usage: %s [-direction up|down|step|status] [-steps N] [-force VERSION]\n", os.Args[0])
 	flag.PrintDefaults()
 }
 
@@ -42,12 +45,31 @@ func main() {
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, host, port, dbname)
 
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("failed to get working directory: %v", err)
+	}
+
+	migrationsPath := filepath.Join(wd, "migrations")
+	migrationsURL := (&url.URL{
+		Scheme: "file",
+		Path:   filepath.ToSlash(migrationsPath),
+	}).String()
+
 	m, err := migrate.New(
-		"file://migrations",
+		migrationsURL,
 		dsn,
 	)
 	if err != nil {
 		log.Fatalf("failed to create migrate instance: %v", err)
+	}
+
+	if *force >= 0 {
+		if err := m.Force(*force); err != nil {
+			log.Fatalf("failed to force migration version: %v", err)
+		}
+		log.Printf("forced migration version to %d", *force)
+		return
 	}
 
 	switch *direction {
@@ -60,6 +82,13 @@ func main() {
 			log.Fatal("-steps must be provided when direction=step")
 		}
 		err = m.Steps(*steps)
+	case "status":
+		version, dirty, verr := m.Version()
+		if verr != nil {
+			log.Fatalf("failed to get migration version: %v", verr)
+		}
+		log.Printf("migration version: %d, dirty: %t", version, dirty)
+		return
 	default:
 		usage()
 		os.Exit(1)
@@ -67,7 +96,11 @@ func main() {
 
 	if err != nil {
 		if err == migrate.ErrNoChange {
-			log.Println("no migration changes to apply")
+			version, dirty, verr := m.Version()
+			if verr != nil {
+				log.Fatalf("migration failed: %v", err)
+			}
+			log.Printf("no migration changes to apply (current version: %d, dirty: %t)", version, dirty)
 			return
 		}
 		log.Fatalf("migration failed: %v", err)
