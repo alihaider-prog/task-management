@@ -3,6 +3,8 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"task-management/internal/models"
 )
 
@@ -12,13 +14,23 @@ type TaskRepository struct {
 	db *sql.DB
 }
 
+type TaskFilter struct {
+	ProjectID  int64
+	Status     string
+	Priority   string
+	AssigneeID *int64
+	Search     string
+	SortBy     string
+	Order      string
+}
+
 func NewTaskRepository(db *sql.DB) *TaskRepository {
 	return &TaskRepository{
 		db: db,
 	}
 }
 
-func (r *TaskRepository) AllTasks(projectID int64) ([]models.Task, error) {
+func (r *TaskRepository) AllTasks(filter TaskFilter) ([]models.Task, error) {
 	query := `SELECT id,
 		title,
 		description,
@@ -33,9 +45,45 @@ func (r *TaskRepository) AllTasks(projectID int64) ([]models.Task, error) {
 		updated_at
 		FROM tasks
 		WHERE project_id = $1
-		ORDER BY created_at DESC
 	`
-	rows, err := r.db.Query(query, projectID)
+	params := []interface{}{filter.ProjectID}
+
+	if filter.Status != "" {
+		query += " AND status = $" + fmt.Sprint(len(params)+1)
+		params = append(params, filter.Status)
+	}
+	if filter.AssigneeID != nil {
+		query += " AND assignee_id = $" + fmt.Sprint(len(params)+1)
+		params = append(params, *filter.AssigneeID)
+	}
+	if filter.Priority != "" {
+		query += " AND priority = $" + fmt.Sprint(len(params)+1)
+		params = append(params, filter.Priority)
+	}
+	if filter.Search != "" {
+		query += " AND (title ILIKE $" + fmt.Sprint(len(params)+1) + " OR description ILIKE $" + fmt.Sprint(len(params)+2) + ")"
+		searchTerm := "%" + strings.ReplaceAll(filter.Search, "%", "\\%") + "%"
+		params = append(params, searchTerm, searchTerm)
+	}
+
+	sortBy := "created_at"
+	allowedSort := map[string]string{
+		"due_date":   "due_date",
+		"created_at": "created_at",
+		"updated_at": "updated_at",
+	}
+	if col, ok := allowedSort[filter.SortBy]; ok {
+		sortBy = col
+	}
+
+	order := "DESC"
+	if strings.EqualFold(filter.Order, "asc") {
+		order = "ASC"
+	}
+
+	query += " ORDER BY " + sortBy + " " + order
+
+	rows, err := r.db.Query(query, params...)
 	if err != nil {
 		return nil, err
 	}

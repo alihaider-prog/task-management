@@ -18,11 +18,11 @@ func NewProjectHandler(service *service.ProjectService) *ProjectHandler {
 }
 
 func (h *ProjectHandler) GetProjects(c *gin.Context) {
-	workspaceID, err := strconv.ParseInt(c.Query("workspace_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid workspace id",
-		})
+	workspaceIDStr := c.Param("id")
+
+	workspaceID, err := strconv.ParseInt(workspaceIDStr, 10, 64)
+	if err != nil || workspaceID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
 		return
 	}
 

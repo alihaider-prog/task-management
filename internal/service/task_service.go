@@ -16,11 +16,11 @@ func NewTaskService(repo *repository.TaskRepository) *TaskService {
 	}
 }
 
-func (s *TaskService) GetTasks(ProjectID int64) ([]models.Task, error) {
-	if ProjectID <= 0 {
+func (s *TaskService) GetTasks(filter repository.TaskFilter) ([]models.Task, error) {
+	if filter.ProjectID <= 0 {
 		return nil, errors.New("invalid project id")
 	}
-	return s.repo.AllTasks(ProjectID)
+	return s.repo.AllTasks(filter)
 }
 
 func (s *TaskService) GetTaskByID(id int64) (*models.Task, error) {

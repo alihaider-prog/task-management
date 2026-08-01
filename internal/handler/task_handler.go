@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"task-management/internal/models"
+	"task-management/internal/repository"
 	"task-management/internal/service"
 
 	"strconv"
@@ -22,13 +23,35 @@ func NewTaskHandler(service *service.TaskService) *TaskHandler {
 }
 
 func (h *TaskHandler) GetTasks(c *gin.Context) {
-	projectID, err := strconv.ParseInt(c.Query("project_id"), 10, 64)
-	if err != nil {
+	projectIDStr := c.Param("id")
+
+	projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
+	if err != nil || projectID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project id"})
 		return
 	}
 
-	tasks, err := h.service.GetTasks(projectID)
+	var assigneeID *int64
+	if assigneeIDStr := c.Query("assignee_id"); assigneeIDStr != "" {
+		val, err := strconv.ParseInt(assigneeIDStr, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid assignee id"})
+			return
+		}
+		assigneeID = &val
+	}
+
+	filter := repository.TaskFilter{
+		ProjectID:  projectID,
+		Status:     c.Query("status"),
+		Priority:   c.Query("priority"),
+		AssigneeID: assigneeID,
+		Search:     c.Query("search"),
+		SortBy:     c.Query("sort_by"),
+		Order:      c.Query("order"),
+	}
+
+	tasks, err := h.service.GetTasks(filter)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

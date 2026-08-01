@@ -8,8 +8,9 @@ import (
 
 func registerProjectRouts(protected *gin.RouterGroup, projectHandler *handler.ProjectHandler) {
 	projects := protected.Group("/projects")
+	workspaceProjects := protected.Group("/workspace/:id/projects")
 	{
-		projects.GET("", projectHandler.GetProjects)
+		workspaceProjects.GET("", projectHandler.GetProjects)
 		projects.GET("/:id", projectHandler.GetProjectByID)
 		projects.POST("", projectHandler.CreateProject)
 		projects.PUT("/:id", projectHandler.UpdateProject)
