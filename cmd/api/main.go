@@ -75,11 +75,17 @@ func main() {
 	projectService := service.NewProjectService(projectRepo)
 	projectHandler := handler.NewProjectHandler(projectService)
 
+	// members
+	memberRepo := repository.NewMemberRepository(db)
+	memberService := service.NewMemberService(memberRepo)
+	memberHandler := handler.NewMemberHandler(memberService)
+
 	r := router.SetupRouter(
 		authHandler,
 		taskHandler,
 		workspaceHandler,
 		projectHandler,
+		memberHandler,
 	)
 
 	r.Run()

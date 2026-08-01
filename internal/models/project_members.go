@@ -6,8 +6,8 @@ import (
 
 type ProjectMembers struct {
 	ID        int       `json:"id"`
-	ProjectID int       `json:"project_id"`
-	UserID    int       `json:"user_id"`
+	ProjectID int64     `json:"project_id"`
+	UserID    int64     `json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

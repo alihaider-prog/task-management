@@ -12,6 +12,7 @@ func SetupRouter(
 	taskHandler *handler.TaskHandler,
 	workspaceHandler *handler.WorkspaceHandler,
 	projectHandler *handler.ProjectHandler,
+	memberHandler *handler.MemberHandler,
 ) *gin.Engine {
 
 	router := gin.Default()
@@ -23,6 +24,7 @@ func SetupRouter(
 	registerAuthRouts(api, authHandler)
 	registerTaskRouts(protected, taskHandler)
 	registerWorkspaceRouts(protected, workspaceHandler)
+	registerMemberRouts(protected, memberHandler)
 	registerProjectRouts(protected, projectHandler)
 
 	return router
