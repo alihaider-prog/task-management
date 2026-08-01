@@ -122,47 +122,26 @@ func (r *TaskRepository) AllTasks(filter TaskFilter) ([]models.Task, error) {
 }
 
 func (r *TaskRepository) TaskByID(id int64) (*models.Task, error) {
-	query := `SELECT id,
-		title,
-		description,
-		status,
-		priority,
-		due_date,
-		assignee_id,
-		parent_task_id,
-		version,
-		project_id,
-		created_by,
-		created_at,
-		updated_at
-		FROM tasks
-		WHERE id = $1
-	`
-	row := r.db.QueryRow(query, id)
-	var task models.Task
-
-	if err := row.Scan(
-		&task.ID,
-		&task.Title,
-		&task.Description,
-		&task.Status,
-		&task.Priority,
-		&task.DueDate,
-		&task.AssigneeID,
-		&task.ParentTaskID,
-		&task.Version,
-		&task.ProjectID,
-		&task.CreatedBy,
-		&task.CreatedAt,
-		&task.UpdatedAt,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errors.New("task not found")
-		}
+	task, err := r.fetchTaskByID(id)
+	if err != nil {
 		return nil, err
 	}
 
-	return &task, nil
+	if task.ParentTaskID != nil {
+		parentTask, err := r.fetchTaskByID(*task.ParentTaskID)
+		if err != nil {
+			return nil, err
+		}
+		task.ParentTask = parentTask
+	}
+
+	subtasks, err := r.fetchSubtasks(id)
+	if err != nil {
+		return nil, err
+	}
+	task.Subtasks = subtasks
+
+	return task, nil
 }
 
 func (r *TaskRepository) Create(task *models.Task) (*int64, error) {
@@ -274,4 +253,103 @@ func (r *TaskRepository) ProjectExists(projectID int64) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (r *TaskRepository) fetchTaskByID(id int64) (*models.Task, error) {
+	query := `SELECT id,
+		title,
+		description,
+		status,
+		priority,
+		due_date,
+		assignee_id,
+		parent_task_id,
+		version,
+		project_id,
+		created_by,
+		created_at,
+		updated_at
+		FROM tasks
+		WHERE id = $1
+	`
+	row := r.db.QueryRow(query, id)
+	var task models.Task
+
+	if err := row.Scan(
+		&task.ID,
+		&task.Title,
+		&task.Description,
+		&task.Status,
+		&task.Priority,
+		&task.DueDate,
+		&task.AssigneeID,
+		&task.ParentTaskID,
+		&task.Version,
+		&task.ProjectID,
+		&task.CreatedBy,
+		&task.CreatedAt,
+		&task.UpdatedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("task not found")
+		}
+		return nil, err
+	}
+
+	return &task, nil
+}
+
+func (r *TaskRepository) fetchSubtasks(parentTaskID int64) ([]models.Task, error) {
+	query := `SELECT id,
+		title,
+		description,
+		status,
+		priority,
+		due_date,
+		assignee_id,
+		parent_task_id,
+		version,
+		project_id,
+		created_by,
+		created_at,
+		updated_at
+		FROM tasks
+		WHERE parent_task_id = $1
+		ORDER BY created_at ASC
+	`
+
+	rows, err := r.db.Query(query, parentTaskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subtasks []models.Task
+	for rows.Next() {
+		var task models.Task
+		if err := rows.Scan(
+			&task.ID,
+			&task.Title,
+			&task.Description,
+			&task.Status,
+			&task.Priority,
+			&task.DueDate,
+			&task.AssigneeID,
+			&task.ParentTaskID,
+			&task.Version,
+			&task.ProjectID,
+			&task.CreatedBy,
+			&task.CreatedAt,
+			&task.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		subtasks = append(subtasks, task)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return subtasks, nil
 }

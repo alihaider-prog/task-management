@@ -30,6 +30,8 @@ type Task struct {
 	AssigneeID   *int64       `json:"assignee_id"`
 	ProjectID    *int64       `json:"project_id"`
 	ParentTaskID *int64       `json:"parent_task_id"`
+	ParentTask   *Task        `json:"parent_task,omitempty"`
+	Subtasks     []Task       `json:"subtasks,omitempty"`
 	Version      int          `json:"version"`
 	CreatedBy    int64        `json:"created_by"`
 	CreatedAt    time.Time    `json:"created_at"`
