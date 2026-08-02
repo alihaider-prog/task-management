@@ -517,7 +517,7 @@ func (r *TaskRepository) MarkOverdueTasks(batchSize int, changedBy int64) (int, 
         created_at,
         updated_at
         FROM tasks
-        WHERE due_date < NOW() AND status != 'completed'
+        WHERE due_date < NOW() AND status != 'completed' AND status != 'overdue'
         FOR UPDATE SKIP LOCKED
         LIMIT $1`, batchSize)
 	if err != nil {
