@@ -96,6 +96,13 @@ func (s *TaskService) DeleteTask(id int64) error {
 	return s.repo.Delete(id)
 }
 
+func (s *TaskService) GetTaskHistory(taskID int64) ([]models.TaskHistory, error) {
+	if taskID <= 0 {
+		return nil, errors.New("invalid task id")
+	}
+	return s.repo.TaskHistory(taskID)
+}
+
 // ProcessOverdue marks overdue tasks in batches. `systemUserID` is recorded as the changer in history.
 func (s *TaskService) ProcessOverdue(batchSize int, systemUserID int64) (int, error) {
 	return s.repo.MarkOverdueTasks(batchSize, systemUserID)

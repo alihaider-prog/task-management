@@ -198,3 +198,23 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 		"message": "Task deleted",
 	})
 }
+
+func (h *TaskHandler) GetTaskHistory(c *gin.Context) {
+	taskID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid task id",
+		})
+		return
+	}
+
+	taskHistory, err := h.service.GetTaskHistory(taskID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, taskHistory)
+}

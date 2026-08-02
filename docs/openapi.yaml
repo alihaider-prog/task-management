@@ -144,6 +144,69 @@ components:
         created_at:
           type: string
           format: date-time
+    TaskHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+        changed_by:
+          type: integer
+          nullable: true
+        action:
+          type: string
+          enum:
+            - create
+            - update
+            - delete
+            - status_change
+        field_name:
+          type: string
+          nullable: true
+        old_value:
+          type: string
+          nullable: true
+        new_value:
+          type: string
+          nullable: true
+        old_status:
+          type: string
+          enum:
+            - todo
+            - in_progress
+            - completed
+            - overdue
+        new_status:
+          type: string
+          enum:
+            - todo
+            - in_progress
+            - completed
+            - overdue
+        old_priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - urgent
+        new_priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - urgent
+        old_assignee_id:
+          type: integer
+          nullable: true
+        new_assignee_id:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
 paths:
   /auth/register:
     post:
@@ -537,3 +600,26 @@ paths:
       responses:
         '200':
           description: Task deleted
+
+  /tasks/{id}/history:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get task history
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Task history entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskHistory'
+        '404':
+          description: Task not found

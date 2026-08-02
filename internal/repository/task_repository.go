@@ -493,6 +493,62 @@ func (r *TaskRepository) insertTaskHistoryTx(tx *sql.Tx, oldTask, newTask *model
 	return err
 }
 
+func (r *TaskRepository) TaskHistory(taskID int64) ([]models.TaskHistory, error) {
+	query := `SELECT id,
+		task_id,
+		changed_by,
+		action,
+		field_name,
+		old_value,
+		new_value,
+		old_status,
+		new_status,
+		old_priority,
+		new_priority,
+		old_assignee_id,
+		new_assignee_id,
+		created_at
+		FROM task_history
+		WHERE task_id = $1
+		ORDER BY created_at DESC
+	`
+	rows, err := r.db.Query(query, taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []models.TaskHistory
+	for rows.Next() {
+		var th models.TaskHistory
+		if err := rows.Scan(
+			&th.ID,
+			&th.TaskID,
+			&th.ChangedBy,
+			&th.Action,
+			&th.FieldName,
+			&th.OldValue,
+			&th.NewValue,
+			&th.OldStatus,
+			&th.NewStatus,
+			&th.OldPriority,
+			&th.NewPriority,
+			&th.OldAssigneeID,
+			&th.NewAssigneeID,
+			&th.CreatedAt,
+	); err != nil {
+			return nil, err
+		}
+		history = append(history, th)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return history, nil
+}
+
 func (r *TaskRepository) MarkOverdueTasks(batchSize int, changedBy int64) (int, error) {
 	if batchSize <= 0 {
 		batchSize = 100

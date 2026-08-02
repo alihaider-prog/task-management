@@ -16,5 +16,6 @@ func registerTaskRouts(protected *gin.RouterGroup, taskHandler *handler.TaskHand
 		tasks.POST("", roleMiddleware.AuthorizeTaskCreate(), taskHandler.CreateTask)
 		tasks.PUT("/:id", roleMiddleware.AuthorizeTaskWrite(), taskHandler.UpdateTask)
 		tasks.DELETE("/:id", roleMiddleware.AuthorizeTaskWrite(), taskHandler.DeleteTask)
+		tasks.GET("/:id/history", roleMiddleware.AuthorizeTaskRead(), taskHandler.GetTaskHistory)
 	}
 }
