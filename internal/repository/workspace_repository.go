@@ -105,7 +105,7 @@ func (r *WorkspaceRepository) Create(workspace *models.Workspace) (*int64, error
 			name,
 			owner_id
 		) VALUES ($1, $2)
-		RETURNING id, created_at, updated_at 
+		RETURNING id 
 	`
 
 	row := r.db.QueryRow(
@@ -115,11 +115,7 @@ func (r *WorkspaceRepository) Create(workspace *models.Workspace) (*int64, error
 	)
 
 	var id int64
-	if err := row.Scan(
-		&id,
-		&workspace.CreatedAt,
-		&workspace.UpdatedAt,
-	); err != nil {
+	if err := row.Scan(&id); err != nil {
 		return nil, err
 	}
 
@@ -129,13 +125,20 @@ func (r *WorkspaceRepository) Create(workspace *models.Workspace) (*int64, error
 func (r *WorkspaceRepository) Update(workspace *models.Workspace) error {
 	query := `UPDATE workspaces SET name = $1 WHERE id = $2 RETURNING updated_at`
 
-	row := r.db.QueryRow(query, workspace.Name, workspace.ID)
-
-	if err := row.Scan(&workspace.UpdatedAt); err != nil {
-		if err == sql.ErrNoRows {
-			return errors.New("workspace not found")
-		}
+	res, err := r.db.Exec(query,
+		workspace.Name,
+		workspace.ID,
+	)
+	if err != nil {
 		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("workspace not found")
 	}
 
 	return nil

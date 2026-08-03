@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 	"task-management/internal/models"
 )
 
@@ -24,7 +23,6 @@ func (r *AuthRepository) EmailExists(email string) (bool, error) {
 
 	err := r.db.QueryRow(query, email)
 	if err != nil {
-		fmt.Println("wweewfnjkn")
 		return true, err.Err()
 	}
 

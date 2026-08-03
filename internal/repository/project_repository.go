@@ -99,7 +99,7 @@ func (r *ProjectRepository) Create(project *models.Project) (*int64, error) {
 		description,
 		created_by
 	) VALUES ($1, $2, $3, $4)
-	 RETURNING id, created_by, created_at, updated_at`
+	 RETURNING id`
 
 	row := r.db.QueryRow(
 		query,
@@ -112,9 +112,6 @@ func (r *ProjectRepository) Create(project *models.Project) (*int64, error) {
 	var id int64
 	if err := row.Scan(
 		&id,
-		&project.CreatedBy,
-		&project.CreatedAt,
-		&project.UpdatedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -126,21 +123,24 @@ func (r *ProjectRepository) Update(project *models.Project) error {
 	query := `UPDATE projects SET
 		name = $1,
 		description = $2
-		WHERE id = $3 
-		RETURNING updated_at
+		WHERE id = $3
 	`
 
-	row := r.db.QueryRow(query,
+	res, err := r.db.Exec(query,
 		project.Name,
 		project.Description,
 		project.ID,
 	)
-
-	if err := row.Scan(&project.UpdatedAt); err != nil {
-		if err == sql.ErrNoRows {
-			return errors.New("project not found")
-		}
+	if err != nil {
 		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("project not found")
 	}
 
 	return nil

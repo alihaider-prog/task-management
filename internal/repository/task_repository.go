@@ -158,7 +158,7 @@ func (r *TaskRepository) Create(task *models.Task) (*int64, error) {
 		project_id,
 		created_by
 	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-	RETURNING id, created_at, updated_at`
+	RETURNING id`
 
 	row := r.db.QueryRow(
 		query,
@@ -175,7 +175,7 @@ func (r *TaskRepository) Create(task *models.Task) (*int64, error) {
 	)
 
 	var id int64
-	if err := row.Scan(&id, &task.CreatedAt, &task.UpdatedAt); err != nil {
+	if err := row.Scan(&id); err != nil {
 		return nil, err
 	}
 
@@ -209,10 +209,9 @@ func (r *TaskRepository) Update(task *models.Task, changedBy int64) error {
 		parent_task_id = $7,
 		version = $8,
 		updated_at = CURRENT_TIMESTAMP
-		WHERE id = $9
-		RETURNING updated_at`
+		WHERE id = $9`
 
-	row := tx.QueryRow(
+	res, err := tx.Exec(
 		query,
 		task.Title,
 		task.Description,
@@ -224,12 +223,16 @@ func (r *TaskRepository) Update(task *models.Task, changedBy int64) error {
 		newVersion,
 		task.ID,
 	)
-
-	if err = row.Scan(&task.UpdatedAt); err != nil {
-		if err == sql.ErrNoRows {
-			return errors.New("task not found")
-		}
+	if err != nil {
 		return err
+	}
+
+	rows, err := res.RowsAffected(); 
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("task not found")
 	}
 
 	if err = r.insertTaskHistoryTx(tx, currentTask, task, changedBy); err != nil {

@@ -21,7 +21,7 @@ func (r *MemberRepository) AddWorkspaceMember(member *models.WorkspaceMembers) (
 		user_id,
 		role
 	) VALUES ($1, $2, $3)
-	RETURNING id, created_at`
+	RETURNING id`
 
 	row := r.db.QueryRow(
 		query,
@@ -31,7 +31,7 @@ func (r *MemberRepository) AddWorkspaceMember(member *models.WorkspaceMembers) (
 	)
 
 	var id int64
-	if err := row.Scan(&id, &member.CreatedAt); err != nil {
+	if err := row.Scan(&id); err != nil {
 		return nil, err
 	}
 
@@ -91,7 +91,7 @@ func (r *MemberRepository) AddProjectMember(member *models.ProjectMembers) (*int
 		project_id,
 		user_id
 	) VALUES ($1, $2)
-	RETURNING id, created_at`
+	RETURNING id`
 
 	row := r.db.QueryRow(
 		query,
@@ -100,7 +100,7 @@ func (r *MemberRepository) AddProjectMember(member *models.ProjectMembers) (*int
 	)
 
 	var id int64
-	if err := row.Scan(&id, &member.CreatedAt); err != nil {
+	if err := row.Scan(&id); err != nil {
 		return nil, err
 	}
 
