@@ -12,13 +12,13 @@ func registerMemberRouts(protected *gin.RouterGroup, memberHandler *handler.Memb
 	{
 		workspaceMembers.POST("", roleMiddleware.AuthorizeWorkspaceAdmin(), memberHandler.AddWorkspaceMember)
 		workspaceMembers.GET("", roleMiddleware.AuthorizeWorkspaceMembers(), memberHandler.ListWorkspaceMembers)
-		workspaceMembers.DELETE("/:id", roleMiddleware.AuthorizeWorkspaceAdmin(), memberHandler.RemoveWorkspaceMember)
+		workspaceMembers.DELETE("/:memberId", roleMiddleware.AuthorizeWorkspaceAdmin(), memberHandler.RemoveWorkspaceMember)
 	}
 
 	projectMembers := protected.Group("/projects/:id/members")
 	{
 		projectMembers.POST("", roleMiddleware.AuthorizeProjectWorkspaceAdmin(), memberHandler.AddProjectMember)
 		projectMembers.GET("", roleMiddleware.AuthorizeProjectRead(), memberHandler.ListProjectMembers)
-		projectMembers.DELETE("/:id", roleMiddleware.AuthorizeProjectWorkspaceAdmin(), memberHandler.RemoveProjectMember)
+		projectMembers.DELETE("/:memberId", roleMiddleware.AuthorizeProjectWorkspaceAdmin(), memberHandler.RemoveProjectMember)
 	}
 }

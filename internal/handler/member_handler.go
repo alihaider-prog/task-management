@@ -71,7 +71,7 @@ func (h *MemberHandler) ListWorkspaceMembers(c *gin.Context) {
 }
 
 func (h *MemberHandler) RemoveWorkspaceMember(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("memberId"), 10, 64)
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid member id",
@@ -145,7 +145,7 @@ func (h *MemberHandler) ListProjectMembers(c *gin.Context) {
 }
 
 func (h *MemberHandler) RemoveProjectMember(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("memberId"), 10, 64)
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid member id",
