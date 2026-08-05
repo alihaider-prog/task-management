@@ -7,9 +7,9 @@ import (
 	"strings"
 	"task-management/internal/models"
 	"time"
-)
 
-// import "task-management/internal/models"
+	"github.com/jackc/pgx/v5/pgconn"
+)
 
 type TaskRepository struct {
 	db *sql.DB
@@ -174,8 +174,18 @@ func (r *TaskRepository) Create(task *models.Task) (*int64, error) {
 		task.CreatedBy,
 	)
 
+	var pgErr *pgconn.PgError
 	var id int64
-	if err := row.Scan(&id); err != nil {
+	err := row.Scan(&id)
+	if err != nil {
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" { // Foreign key violation
+			if strings.Contains(pgErr.Message, "tasks_project_id_fkey") {
+				return nil, errors.New("project does not exist")
+			}
+			if strings.Contains(pgErr.Message, "tasks_assignee_id_fkey") {
+				return nil, errors.New("assignee user does not exist")
+			}
+		}
 		return nil, err
 	}
 
@@ -223,11 +233,17 @@ func (r *TaskRepository) Update(task *models.Task, changedBy int64) error {
 		newVersion,
 		task.ID,
 	)
+	var pgErr *pgconn.PgError
 	if err != nil {
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" { // Foreign key violation
+			if strings.Contains(pgErr.Message, "tasks_assignee_id_fkey") {
+				return errors.New("assignee user does not exist")
+			}
+		}
 		return err
 	}
 
-	rows, err := res.RowsAffected(); 
+	rows, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
@@ -265,32 +281,6 @@ func (r *TaskRepository) Delete(id int64) error {
 	}
 
 	return nil
-}
-
-func (r *TaskRepository) ProjectExists(projectID int64) (bool, error) {
-	query := `SELECT 1 FROM projects WHERE id = $1`
-	row := r.db.QueryRow(query, projectID)
-	var exists int
-	if err := row.Scan(&exists); err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-func (r *TaskRepository) UserExists(userID int64) (bool, error) {
-	query := `SELECT 1 FROM users WHERE id = $1`
-	row := r.db.QueryRow(query, userID)
-	var exists int
-	if err := row.Scan(&exists); err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
 }
 
 func (r *TaskRepository) GetProjectIDByTaskID(taskID int64) (*int64, error) {
@@ -539,7 +529,7 @@ func (r *TaskRepository) TaskHistory(taskID int64) ([]models.TaskHistory, error)
 			&th.OldAssigneeID,
 			&th.NewAssigneeID,
 			&th.CreatedAt,
-	); err != nil {
+		); err != nil {
 			return nil, err
 		}
 		history = append(history, th)

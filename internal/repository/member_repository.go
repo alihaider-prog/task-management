@@ -3,8 +3,10 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
+	"strings"
 	"task-management/internal/models"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type MemberRepository struct {
@@ -31,7 +33,19 @@ func (r *MemberRepository) AddWorkspaceMember(member *models.WorkspaceMembers) (
 	)
 
 	var id int64
-	if err := row.Scan(&id); err != nil {
+	var pgErr *pgconn.PgError
+	err := row.Scan(&id)
+	if err != nil {
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" { // Foreign key violation
+			if strings.Contains(pgErr.Message, "workspace_members_workspace_id_fkey") {
+				return nil, errors.New("workspace does not exist")
+			}
+			if strings.Contains(pgErr.Message, "workspace_members_user_id_fkey") {
+				return nil, errors.New("user does not exist")
+			}
+		} else if errors.As(err, &pgErr) && pgErr.Code == "23505" { // Unique violation
+			return nil, errors.New("user is already a member of this workspace")
+		}
 		return nil, err
 	}
 
@@ -100,7 +114,19 @@ func (r *MemberRepository) AddProjectMember(member *models.ProjectMembers) (*int
 	)
 
 	var id int64
-	if err := row.Scan(&id); err != nil {
+	var pgErr *pgconn.PgError
+	err := row.Scan(&id)
+	if err != nil {
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" { // Foreign key violation
+			if strings.Contains(pgErr.Message, "project_members_project_id_fkey") {
+				return nil, errors.New("project does not exist")
+			}
+			if strings.Contains(pgErr.Message, "project_members_user_id_fkey") {
+				return nil, errors.New("user does not exist")
+			}
+		} else if errors.As(err, &pgErr) && pgErr.Code == "23505" { // Unique violation
+			return nil, errors.New("user is already a member of this project")
+		}
 		return nil, err
 	}
 
@@ -157,19 +183,6 @@ func (r *MemberRepository) RemoveProjectMember(id int64) error {
 func (r *MemberRepository) IsProjectMember(projectID, userID int64) (bool, error) {
 	query := `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2`
 	row := r.db.QueryRow(query, projectID, userID)
-	var exists int
-	if err := row.Scan(&exists); err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-func (r *MemberRepository) ModelExists(modelID int64, tableName string) (bool, error) {
-	query := fmt.Sprintf("SELECT 1 FROM %s WHERE id = $1", tableName)
-	row := r.db.QueryRow(query, modelID)
 	var exists int
 	if err := row.Scan(&exists); err != nil {
 		if err == sql.ErrNoRows {

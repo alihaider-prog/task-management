@@ -41,22 +41,6 @@ func (s *TaskService) CreateTask(task *models.Task, userID int64) (*int64, error
 		return nil, errors.New("project is required")
 	}
 
-	projectExists, err := s.repo.ProjectExists(*task.ProjectID)
-	if err != nil {
-		return nil, err
-	}
-	if !projectExists {
-		return nil, errors.New("project does not exist")
-	}
-
-	userExists, err := s.repo.UserExists(*task.AssigneeID)
-	if err != nil {
-		return nil, err
-	}
-	if !userExists {
-		return nil, errors.New("assignee user does not exist")
-	}
-
 	if task.Priority == "" {
 		task.Priority = models.PriorityMedium
 	}
@@ -74,16 +58,6 @@ func (s *TaskService) UpdateTask(task *models.Task, userID int64) error {
 	}
 	if userID <= 0 {
 		return errors.New("invalid user id")
-	}
-
-	if task.AssigneeID != nil {
-		userExists, err := s.repo.UserExists(*task.AssigneeID)
-		if err != nil {
-			return err
-		}
-		if !userExists {
-			return errors.New("assignee user does not exist")
-		}
 	}
 
 	return s.repo.Update(task, userID)

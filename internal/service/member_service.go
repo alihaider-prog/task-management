@@ -19,26 +19,6 @@ func (s *MemberService) AddWorkspaceMember(member *models.WorkspaceMembers) (*in
 		return nil, errors.New("workspace id is required")
 	}
 
-	workspaceExists, err := s.repo.ModelExists(member.WorkspaceID, "workspaces")
-	if err != nil {
-		return nil, err
-	}
-	if !workspaceExists {
-		return nil, errors.New("workspace does not exist")
-	}
-
-	if member.UserID <= 0 {
-		return nil, errors.New("user id is required")
-	}
-
-	userExists, err := s.repo.ModelExists(member.UserID, "users")
-	if err != nil {
-		return nil, err
-	}
-	if !userExists {
-		return nil, errors.New("user does not exist")
-	}
-
 	if member.Role == "" || (member.Role != models.RoleAdmin && member.Role != models.RoleMember && member.Role != models.RoleViewer) {
 		return nil, errors.New("role is required or invalid")
 	}
@@ -62,26 +42,6 @@ func (s *MemberService) RemoveWorkspaceMember(id int64) error {
 func (s *MemberService) AddProjectMember(member *models.ProjectMembers) (*int64, error) {
 	if member.ProjectID <= 0 {
 		return nil, errors.New("project id is required")
-	}
-
-	projectExists, err := s.repo.ModelExists(member.ProjectID, "projects")
-	if err != nil {
-		return nil, err
-	}
-	if !projectExists {
-		return nil, errors.New("project does not exist")
-	}
-
-	if member.UserID <= 0 {
-		return nil, errors.New("user id is required")
-	}
-
-	userExists, err := s.repo.ModelExists(member.UserID, "users")
-	if err != nil {
-		return nil, err
-	}
-	if !userExists {
-		return nil, errors.New("user does not exist")
 	}
 
 	return s.repo.AddProjectMember(member)
