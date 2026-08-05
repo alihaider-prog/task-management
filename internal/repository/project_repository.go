@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"task-management/internal/models"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type ProjectRepository struct {
@@ -109,10 +111,15 @@ func (r *ProjectRepository) Create(project *models.Project) (*int64, error) {
 		project.CreatedBy,
 	)
 
+	var pgErr *pgconn.PgError
 	var id int64
-	if err := row.Scan(
+	err := row.Scan(
 		&id,
-	); err != nil {
+	)
+	if err != nil {
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" { // Foreign key violation
+			return nil, errors.New("workspace does not exist")
+		}
 		return nil, err
 	}
 
@@ -162,19 +169,6 @@ func (r *ProjectRepository) Delete(id int64) error {
 	}
 
 	return nil
-}
-
-func (r *ProjectRepository) WorkspaceExists(workspaceID int64) (bool, error) {
-	query := `SELECT 1 FROM workspaces WHERE id = $1`
-	row := r.db.QueryRow(query, workspaceID)
-	var exists int
-	if err := row.Scan(&exists); err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
 }
 
 func (r *ProjectRepository) GetWorkspaceIDByProjectID(projectID int64) (*int64, error) {

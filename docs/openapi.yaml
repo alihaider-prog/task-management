@@ -30,9 +30,12 @@ components:
     RegisterRequest:
       type: object
       required:
+        - name
         - email
         - password
       properties:
+        name:
+          type: string
         email:
           type: string
           format: email
@@ -100,8 +103,6 @@ components:
     Task:
       type: object
       properties:
-        id:
-          type: integer
         project_id:
           type: integer
         title:
@@ -121,14 +122,6 @@ components:
         parent_task_id:
           type: integer
           nullable: true
-        created_by:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
     WorkspaceMember:
       type: object
       properties:

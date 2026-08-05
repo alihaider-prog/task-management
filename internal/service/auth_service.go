@@ -19,16 +19,6 @@ func NewAuthService(repo *repository.AuthRepository) *AuthService {
 }
 
 func (s *AuthService) Register(req models.RegisterRequest) error {
-
-	exists, err := s.repo.EmailExists(req.Email)
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		return errors.New("email already exists")
-	}
-
 	hash, err := password.Hash(req.Passowrd)
 	if err != nil {
 		return err

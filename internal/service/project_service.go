@@ -33,14 +33,6 @@ func (s *ProjectService) CreateProject(project *models.Project) (*int64, error) 
 		return nil, errors.New("workspace id is required")
 	}
 
-	workspaceExists, err := s.repo.WorkspaceExists(*project.WorkspaceID)
-	if err != nil {
-		return nil, err
-	}
-	if !workspaceExists {
-		return nil, errors.New("workspace does not exist")
-	}
-
 	return s.repo.Create(project)
 }
 

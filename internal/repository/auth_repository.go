@@ -3,6 +3,8 @@ package repository
 import (
 	"database/sql"
 	"task-management/internal/models"
+	"github.com/jackc/pgx/v5/pgconn"
+	"errors"
 )
 
 type AuthRepository struct {
@@ -15,21 +17,6 @@ func NewAuthRepository(db *sql.DB) *AuthRepository {
 	}
 }
 
-
-func (r *AuthRepository) EmailExists(email string) (bool, error) {
-	query := `
-		SELECT 1 FROM users WHERE email = $1
-	`
-
-	err := r.db.QueryRow(query, email)
-	if err != nil {
-		return true, err.Err()
-	}
-
-	return false, nil
-}
-
-
 func (r *AuthRepository) Create (user models.User) error {
 	query := `
 		INSERT INTO users
@@ -38,6 +25,14 @@ func (r *AuthRepository) Create (user models.User) error {
 	`
 
 	_, err := r.db.Exec(query, user.Name, user.Email, user.Password)
+
+	var pgErr *pgconn.PgError
+	if err != nil {
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // Unique constraint violation
+			return errors.New("email already exists")
+		}
+		return err
+	}
 
 	return err
 }
